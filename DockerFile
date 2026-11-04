@@ -1,5 +1,5 @@
-FROM mcr.Microsoft.com/dotnet/sdk:10.0 AS build
-WORKDiR /src
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
 
 COPY ["Ingestion-Telemetry_API.csproj", "./"]
 RUN dotnet restore "Ingestion-Telemetry_API.csproj"
@@ -7,8 +7,10 @@ RUN dotnet restore "Ingestion-Telemetry_API.csproj"
 COPY . .
 RUN dotnet publish "Ingestion-Telemetry_API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.Microsoft.com/dotnet/sdk:10.0 AS runtime
+FROM mcr.Microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
 
 COPY --from=build /app/publish .
 
