@@ -72,6 +72,7 @@ namespace Services
             {
                 await _connection.CloseAsync();
             }
+            _connectionLock.Dispose();
         }
     }
 }
