@@ -9,13 +9,12 @@ namespace Services
 {
     public interface IMetricsProducer
     {
-        void Publish(MachineMetrics metric);
+        Task Publish(MachineMetrics metric, int subscriptionTier);
     }
     public class RabbitMqMetricsProducer: IMetricsProducer, IAsyncDisposable
     {
         private IConnection _connection;
         private IChannel _channel;
-        private const string ExchangeName = "telemetry_exchange";
         private readonly IConfiguration _config;
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
         public RabbitMqMetricsProducer(IConfiguration configuration)
@@ -41,16 +40,13 @@ namespace Services
                 await _channel.QueueDeclareAsync("metrics_queue", true, false, false, null);
                 await _channel.QueueDeclareAsync("analytics-metrics_queue", true, false, false, null);
 
-                await _channel.ExchangeDeclareAsync(ExchangeName, ExchangeType.Fanout, true);
-                await _channel.QueueBindAsync("metrics_queue", ExchangeName, "server.metrics");
-                await _channel.QueueBindAsync("analytics-metrics_queue", ExchangeName, "server.metrics");
             }
             finally
             {
                 _connectionLock.Release();
             }
         }
-        public async void Publish(MachineMetrics metrics)
+        public async Task Publish(MachineMetrics metrics, int subscriptionTier)
         {
             await EnsureConnection();
             
@@ -60,7 +56,12 @@ namespace Services
             var properties = new BasicProperties();
             properties.Persistent = false;
 
-            await _channel.BasicPublishAsync(ExchangeName, "server.metrics", true, properties, body);
+            await _channel.BasicPublishAsync("", "metrics_queue", true, properties, body);
+
+            if (subscriptionTier is 1 or 2)
+            {
+                await _channel.BasicPublishAsync("", "analytics-metrics_queue", true, properties, body);
+            }
         }
         public async ValueTask DisposeAsync()
         {

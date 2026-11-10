@@ -3,8 +3,10 @@ using Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddSingleton<IMetricsProducer, RabbitMqMetricsProducer>();
+builder.Services.AddSingleton<IUserSubscriptionHandler, UserSubscriptionHandler>();
 
 builder.Services.AddCors(options =>
 {
@@ -19,9 +21,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapPost("/api/telemetry/ingest", (MachineMetrics metrics, IMetricsProducer producer) =>
+app.MapPost("/api/telemetry/ingest", async (MachineMetrics metrics, IMetricsProducer producer, IUserSubscriptionHandler subscriptionHandler) =>
 {
-    producer.Publish(metrics);
+    int subscriptionTier = await subscriptionHandler.GetSubscriptionTier(metrics.instanceId.ToString());
+    await producer.Publish(metrics, subscriptionTier);
     return Results.Accepted(); 
 });
 
