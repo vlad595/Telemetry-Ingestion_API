@@ -12,7 +12,7 @@ namespace Services
     {
         private readonly IConfiguration _config;
         private readonly IMemoryCache _cache;
-        private static readonly TimeSpan CacheDuration = TimeSpan.FromDays(1);
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(20);
         static HttpClient httpClient = new HttpClient();
         public UserSubscriptionHandler(IConfiguration config, IMemoryCache cache)
         {
