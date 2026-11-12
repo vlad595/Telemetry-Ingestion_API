@@ -10,7 +10,6 @@ namespace Services
     public interface IMetricsProducer
     {
         Task Publish(MachineMetrics metric, int subscriptionTier);
-        Task PublishNotification(Guid agentId, string message);
     }
     public class RabbitMqMetricsProducer: IMetricsProducer, IAsyncDisposable
     {
@@ -67,25 +66,8 @@ namespace Services
                 if (subscriptionTier is 1 or 2)
                 {
                     await _channel.BasicPublishAsync("", "analytics-metrics_queue", true, properties, body);
+                    await _channel.BasicPublishAsync("", "telegram_notification", true, properties, body);
                 }
-            }
-            finally
-            {
-                _publishLock.Release();
-            }
-        }
-
-        public async Task PublishNotification(Guid agentId, string message)
-        {
-            await EnsureConnection();
-
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { agentId, message }));
-            var properties = new BasicProperties { Persistent = true };
-
-            await _publishLock.WaitAsync();
-            try
-            {
-                await _channel!.BasicPublishAsync("", "telegram_notification", true, properties, body);
             }
             finally
             {
