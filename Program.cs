@@ -10,14 +10,17 @@ builder.Services.AddSingleton<IUserSubscriptionHandler, UserSubscriptionHandler>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: "AllowAll", policy => {policy.AllowAnyOrigin();policy.AllowAnyHeader();});
+    options.AddPolicy("AllowAll", policy => policy
+        .AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 });
 
 var app = builder.Build();
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors("AllowAll");
     app.MapOpenApi();
 }
 
